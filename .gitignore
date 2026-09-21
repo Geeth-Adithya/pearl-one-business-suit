@@ -1,0 +1,21 @@
+# Dependencies
+/vendor/
+
+# SMTP Credentials (NEVER commit this)
+includes/mail_config.php
+
+# Composer
+composer.lock
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+replace.php
+replace_empty.php
+

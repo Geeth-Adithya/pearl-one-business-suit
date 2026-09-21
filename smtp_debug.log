@@ -1,0 +1,14 @@
+Connection: opening to smtp.gmail.com:587, timeout=15, options=array (
+  'ssl' => 
+  array (
+    'verify_peer' => false,
+    'verify_peer_name' => false,
+    'allow_self_signed' => true,
+  ),
+)
+Connection: opened
+SERVER -> CLIENT: 
+Connection: closing due to error
+Connection: closed
+SMTP Error: Could not connect to SMTP host.
+ERROR: SMTP Error: Could not connect to SMTP host.
