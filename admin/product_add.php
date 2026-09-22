@@ -12,6 +12,36 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
 $error = '';
 $success = '';
 
+// Handle AJAX Add Supplier
+if (isset($_POST['ajax_add_supplier'])) {
+    header('Content-Type: application/json');
+    $name = trim($_POST['sup_name'] ?? '');
+    $phone = trim($_POST['sup_phone'] ?? '');
+    $email = trim($_POST['sup_email'] ?? '');
+    $admin_id = $_SESSION['role'] === 'superadmin' ? null : $_SESSION['user_id'];
+    
+    if (!$name) {
+        echo json_encode(['success' => false, 'error' => 'Name is required']);
+        exit;
+    }
+    
+    $check = $pdo->prepare("SELECT id FROM Suppliers WHERE name = ? AND (admin_id = ? OR admin_id IS NULL)");
+    $check->execute([$name, $admin_id]);
+    if ($check->fetch()) {
+        echo json_encode(['success' => false, 'error' => 'Supplier already exists']);
+        exit;
+    }
+    
+    $stmt = $pdo->prepare('INSERT INTO Suppliers (name, admin_id, phone, email, address, product_types) VALUES (?, ?, ?, ?, ?, ?)');
+    if ($stmt->execute([$name, $admin_id, $phone, $email, '', ''])) {
+        echo json_encode(['success' => true, 'id' => $pdo->lastInsertId(), 'name' => htmlspecialchars($name)]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Failed to add supplier']);
+    }
+    exit;
+}
+
+
 // Ensure at least one category exists
 $catCount = $pdo->query("SELECT COUNT(*) FROM Categories")->fetchColumn();
 if ($catCount == 0) {
@@ -358,7 +388,7 @@ require_once '../includes/header.php';
             <div>
                 <div class="flex justify-between items-center">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-                        <a href="manage_categories.php" class="text-xs text-brand-blue hover:underline flex items-center gap-1" target="_blank">
+                        <a href="manage_categories.php" class="text-xs bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/40 px-2 py-1 rounded flex items-center gap-1 transition font-medium border border-blue-200 dark:border-blue-500/30" target="_blank">
                             <ion-icon name="add-circle-outline"></ion-icon> Add New Category
                         </a>
                     </div>
@@ -388,13 +418,13 @@ require_once '../includes/header.php';
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Search Keywords (For Singlish/Tags)</label>
-                <input type="text" name="search_keywords" placeholder="e.g. kiri, milk, anchor"
+                <input type="text" name="search_keywords" placeholder=""
                     class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue focus:border-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
                 <p class="text-xs text-gray-500 mt-1">If the product name is in Sinhala, type Singlish words here so you can search them easily in the POS.</p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type (Optional)</label>
-                <input type="text" name="type" placeholder="e.g. Normal, Special"
+                <input type="text" name="type" placeholder=""
                     class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue focus:border-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
             </div>
 
@@ -428,7 +458,7 @@ require_once '../includes/header.php';
                             </div>
                             <div class="attr-col hidden"><label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Attribute</label>
                                 <input type="text" name="attribute[]" value="<?= htmlspecialchars($variant['attribute']) ?>"
-                                    placeholder="e.g. Small, Red"
+                                    placeholder=""
                                     class="variant-input mt-1 block w-full rounded-md border-black dark:border-gray-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2">
                             </div>
                             <div>
@@ -464,7 +494,7 @@ require_once '../includes/header.php';
             <!-- Inventory & Supplier -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Unit</label>
-                <input type="text" name="unit" placeholder="e.g., pcs, kg, box"
+                <input type="text" name="unit" placeholder=""
                     class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue focus:border-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
             </div>
             <div>
@@ -482,8 +512,14 @@ require_once '../includes/header.php';
             <?php endif; ?>
             <div class="md:col-span-2">
                 <div class="relative" x-data="{ open: false }">
-                    <label for="supplier_ids"
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">Suppliers</label>
+                    <div class="flex justify-between items-center">
+                        <label for="supplier_ids" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Suppliers</label>
+                        <?php if (!empty($_SESSION['module_supply'])): ?>
+                        <button type="button" onclick="document.getElementById('addSupplierModal').classList.remove('hidden'); document.getElementById('addSupplierModal').classList.add('flex');" class="text-xs bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/40 px-2 py-1 rounded flex items-center gap-1 transition font-medium border border-blue-200 dark:border-blue-500/30">
+                            <ion-icon name="add-circle-outline"></ion-icon> Add New Supplier
+                        </button>
+                        <?php endif; ?>
+                    </div>
                     <button type="button" id="supplier_ids" @click="open = !open" :aria-expanded="open"
                         class="mt-2 w-full flex justify-between items-center text-left rounded-md border border-black dark:border-gray-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-brand-blue focus:border-brand-blue">
                         <span><?= $supplier_ids ? count($supplier_ids) . ' supplier(s) selected' : 'Select Suppliers' ?></span>
@@ -530,7 +566,7 @@ require_once '../includes/header.php';
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Or Image URL</label>
-                    <input type="url" name="image_link" placeholder="https://example.com/image.jpg"
+                    <input type="url" name="image_link" placeholder=""
                         class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue focus:border-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
                 </div>
             </div>
@@ -543,7 +579,7 @@ require_once '../includes/header.php';
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Or Video URL</label>
-                    <input type="url" name="video_link" placeholder="https://example.com/video.mp4"
+                    <input type="url" name="video_link" placeholder=""
                         class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue focus:border-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
                 </div>
             </div>
@@ -713,6 +749,107 @@ require_once '../includes/header.php';
             updateAttributeRequirement();
         });
     }
+</script>
+
+
+<!-- Add Supplier Modal -->
+<div id="addSupplierModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-[100]">
+    <div class="bg-white dark:bg-gray-800 rounded-xl card-shadow w-full max-w-md transform transition-all">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <ion-icon name="person-add" class="text-brand-blue"></ion-icon> Add Supplier
+            </h3>
+            <button type="button" onclick="document.getElementById('addSupplierModal').classList.add('hidden'); document.getElementById('addSupplierModal').classList.remove('flex');" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <ion-icon name="close-outline" class="text-2xl"></ion-icon>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div id="sup_error" class="hidden bg-red-100 text-red-700 p-2 rounded text-sm mb-3"></div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supplier Name *</label>
+                <input type="text" id="sup_name" class="w-full px-3 py-2 border border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone (Optional)</label>
+                <input type="text" id="sup_phone" class="w-full px-3 py-2 border border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email (Optional)</label>
+                <input type="email" id="sup_email" class="w-full px-3 py-2 border border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" onclick="document.getElementById('addSupplierModal').classList.add('hidden'); document.getElementById('addSupplierModal').classList.remove('flex');" class="px-4 py-2 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 transition">Cancel</button>
+                <button type="button" id="btn_save_supplier" class="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-700 shadow transition flex items-center gap-2">
+                    Save Supplier
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById("btn_save_supplier")?.addEventListener("click", function() {
+    const name = document.getElementById("sup_name").value.trim();
+    const phone = document.getElementById("sup_phone").value.trim();
+    const email = document.getElementById("sup_email").value.trim();
+    const errorDiv = document.getElementById("sup_error");
+    
+    if(!name) {
+        errorDiv.textContent = "Supplier Name is required!";
+        errorDiv.classList.remove("hidden");
+        return;
+    }
+    
+    this.disabled = true;
+    this.innerHTML = "Saving...";
+    
+    const formData = new FormData();
+    formData.append("ajax_add_supplier", "1");
+    formData.append("sup_name", name);
+    formData.append("sup_phone", phone);
+    formData.append("sup_email", email);
+    
+    fetch(window.location.href, {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            // Append to checkboxes
+            const container = document.querySelector(".max-h-52.overflow-y-auto");
+            const newLabel = document.createElement("label");
+            newLabel.className = "flex items-center gap-2 rounded px-2 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700";
+            newLabel.innerHTML = `<input type="checkbox" name="supplier_ids[]" value="${data.id}" checked class="h-4 w-4 rounded border-gray-400 text-brand-blue focus:ring-brand-blue"> <span>${data.name}</span>`;
+            
+            // Remove "Add suppliers first" msg if present
+            const emptyMsg = container.querySelector("span.text-gray-500");
+            if (emptyMsg && emptyMsg.innerText.includes("first")) {
+                emptyMsg.remove();
+            }
+            
+            container.appendChild(newLabel);
+            
+            // Reset and close modal
+            document.getElementById("sup_name").value = "";
+            document.getElementById("sup_phone").value = "";
+            document.getElementById("sup_email").value = "";
+            errorDiv.classList.add("hidden");
+            document.getElementById("addSupplierModal").classList.add("hidden");
+            document.getElementById("addSupplierModal").classList.remove("flex");
+        } else {
+            errorDiv.textContent = data.error || "An error occurred.";
+            errorDiv.classList.remove("hidden");
+        }
+    })
+    .catch(err => {
+        errorDiv.textContent = "Network error. Try again.";
+        errorDiv.classList.remove("hidden");
+    })
+    .finally(() => {
+        this.disabled = false;
+        this.innerHTML = "Save Supplier";
+    });
+});
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

@@ -27,7 +27,7 @@ $replace3 = <<<HTML
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Search Keywords (For Singlish/Tags)</label>
-                <input type="text" name="search_keywords" placeholder="e.g. kiri, milk, anchor"
+                <input type="text" name="search_keywords" placeholder=""
                     class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue focus:border-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
                 <p class="text-xs text-gray-500 mt-1">If the product name is in Sinhala, type Singlish words here so you can search them easily in the POS.</p>
             </div>

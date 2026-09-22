@@ -3,6 +3,23 @@ require_once '../includes/db.php';
 require_once '../includes/auth.php';
 requireAdmin();
 
+// Quick Category Add Handler
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_category_name'])) {
+    $catName = trim($_POST['quick_category_name']);
+    if (!empty($catName)) {
+        // Check if exists
+        $check = $pdo->prepare("SELECT id FROM Categories WHERE name = ? AND (admin_id = ? OR admin_id IS NULL)");
+        $check->execute([$catName, $_SESSION['role'] === 'superadmin' ? null : $_SESSION['user_id']]);
+        if (!$check->fetch()) {
+            $stmt = $pdo->prepare("INSERT INTO Categories (name, admin_id) VALUES (?, ?)");
+            $stmt->execute([$catName, $_SESSION['role'] === 'superadmin' ? null : $_SESSION['user_id']]);
+            $_SESSION['success_message'] = "Category '$catName' created! You can now add your product.";
+        }
+    }
+    header("Location: product_add.php");
+    exit;
+}
+
 // Fetch quick stats
 if ($_SESSION['role'] === 'admin') {
     $prodStmt = $pdo->prepare("SELECT COUNT(*) FROM Products WHERE created_by_admin_id = ?");
@@ -13,6 +30,11 @@ if ($_SESSION['role'] === 'admin') {
     $assigned_users_stmt->execute([$_SESSION['user_id']]);
         $assigned_users_stmt->execute([$_SESSION['user_id']]);
     $assigned_users = $assigned_users_stmt->fetchAll();
+
+    // Fetch categories for Quick Add Modal
+    $catStmt = $pdo->prepare("SELECT * FROM Categories WHERE admin_id = ? OR admin_id IS NULL ORDER BY name");
+    $catStmt->execute([$_SESSION['user_id']]);
+    $all_categories = $catStmt->fetchAll();
 
     // Fetch Low Stock Items
     $low_stock_items = [];
@@ -61,6 +83,28 @@ require_once '../includes/header.php';
             <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1"><?= $totalProducts ?></p>
         </div>
         
+        
+        <!-- Update Stock Card -->
+        <a href="<?= BASE_URL ?>/admin/products.php" class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group text-left flex flex-col justify-between cursor-pointer">
+            <div class="flex items-center text-brand-blue dark:text-brand-lighter mb-4 transform group-hover:scale-110 transition-transform">
+                <ion-icon name="sync-circle" class="text-3xl"></ion-icon>
+            </div>
+            <div>
+                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">Inventory</h3>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1 transition">Update Stock</p>
+            </div>
+        </a>
+        
+        <button type="button" onclick="document.getElementById('quickAddModal').classList.remove('hidden'); document.getElementById('quickAddModal').classList.add('flex');" class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group text-left flex flex-col justify-between cursor-pointer">
+            <div class="flex items-center text-brand-blue dark:text-brand-lighter mb-4 transform group-hover:scale-110 transition-transform">
+                <ion-icon name="add-circle" class="text-3xl"></ion-icon>
+            </div>
+            <div>
+                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">Quick Add</h3>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1 transition">Add New Item</p>
+            </div>
+        </button>
+        
         <?php if ($_SESSION['module_pos']): ?>
         <a href="<?= BASE_URL ?>/user/dashboard.php" class="bg-gradient-to-r from-[#1E3A8A] to-[#1e3a8a] p-6 rounded-xl card-shadow hover:opacity-90 transition group flex flex-col justify-between">
             <div class="flex items-center text-white mb-4">
@@ -87,7 +131,7 @@ require_once '../includes/header.php';
             <div class="flex items-center text-yellow-500 mb-4">
                 <ion-icon name="shield-checkmark" class="text-3xl"></ion-icon>
             </div>
-            <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">Total Admins</h3>
+            <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">Total Shops</h3>
             <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1"><?= $totalAdmins ?></p>
         </div>
     </div>
@@ -169,7 +213,7 @@ require_once '../includes/header.php';
             <!-- Manage Products -->
             <?php if ($_SESSION['module_stock']): ?>
             <a href="<?= BASE_URL ?>/admin/products.php"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-brand-blue dark:text-brand-lighter mb-3">
                     <ion-icon name="pricetags-outline" class="text-4xl"></ion-icon>
                 </div>
@@ -180,7 +224,7 @@ require_once '../includes/header.php';
 
             <!-- Shop Settings -->
             <a href="<?= BASE_URL ?>/admin/shop_settings.php"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-pink-500 mb-3">
                     <ion-icon name="settings-outline" class="text-4xl"></ion-icon>
                 </div>
@@ -191,7 +235,7 @@ require_once '../includes/header.php';
             <!-- Manage Categories -->
             <?php if ($_SESSION['module_stock']): ?>
             <a href="<?= BASE_URL ?>/admin/manage_categories.php"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-teal-500 mb-3">
                     <ion-icon name="bookmarks-outline" class="text-4xl"></ion-icon>
                 </div>
@@ -203,7 +247,7 @@ require_once '../includes/header.php';
             <!-- Manage Suppliers -->
             <?php if ($_SESSION['module_supply']): ?>
             <a href="<?= BASE_URL ?>/admin/manage_suppliers.php"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-orange-500 mb-3">
                     <ion-icon name="business-outline" class="text-4xl"></ion-icon>
                 </div>
@@ -215,7 +259,7 @@ require_once '../includes/header.php';
             <!-- Manage Sales & Orders -->
             <?php if ($_SESSION['module_pos']): ?>
             <a href="<?= BASE_URL ?>/admin/orders.php"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-indigo-500 mb-3">
                     <ion-icon name="cart-outline" class="text-4xl"></ion-icon>
                 </div>
@@ -226,7 +270,7 @@ require_once '../includes/header.php';
 
             <!-- Manage Shop Users -->
             <a href="<?= BASE_URL ?>/admin/manage_users.php"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-purple-500 mb-3">
                     <ion-icon name="people-outline" class="text-4xl"></ion-icon>
                 </div>
@@ -237,7 +281,7 @@ require_once '../includes/header.php';
             <!-- Google Sheets Sync -->
             <?php if ($_SESSION['module_stock']): ?>
             <a href="<?= BASE_URL ?>/admin/google_sync.php"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-green-500 mb-3">
                     <ion-icon name="sync-circle-outline" class="text-4xl group-hover:animate-spin"></ion-icon>
                 </div>
@@ -253,29 +297,29 @@ require_once '../includes/header.php';
 
             <!-- Add Admin -->
             <button id="addAdminBtn"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-blue-500 mb-3">
                     <ion-icon name="person-add-outline" class="text-4xl"></ion-icon>
                 </div>
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">Add Shop</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Quickly create a new shop shop.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Quickly create a new shop.</p>
             </button>
 
             <!-- Add User (superadmin only) -->
             <button id="addUserBtnSA"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-indigo-500 mb-3">
                     <ion-icon name="person-add-outline" class="text-4xl"></ion-icon>
                 </div>
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">Add User</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Quickly create a new user shop.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Quickly create a new user.</p>
             </button>
 
             <!-- Add User quick action removed for superadmin -->
 
             <!-- Manage Shops -->
             <a href="<?= BASE_URL ?>/admin/manage_admins.php"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-yellow-500 mb-3">
                     <ion-icon name="shield-checkmark-outline" class="text-4xl"></ion-icon>
                 </div>
@@ -285,7 +329,7 @@ require_once '../includes/header.php';
 
             <!-- Manage Users -->
             <a href="<?= BASE_URL ?>/admin/manage_users.php"
-                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
+                class="bg-white dark:bg-gray-800 p-6 rounded-xl card-shadow hover:bg-gray-50 dark:hover:bg-gray-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group">
                 <div class="flex items-center text-green-600 mb-3">
                     <ion-icon name="people-outline" class="text-4xl"></ion-icon>
                 </div>
@@ -526,6 +570,62 @@ require_once '../includes/header.php';
         </div>
     </div>
 <?php endif; ?>
+
+
+<!-- Quick Add Product Wizard Modal -->
+<div id="quickAddModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-[100]">
+    <div class="bg-white dark:bg-gray-800 rounded-xl card-shadow w-full max-w-md transform transition-all shadow-2xl">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <ion-icon name="flash" class="text-brand-blue"></ion-icon> Quick Add Wizard
+            </h3>
+            <button type="button" onclick="document.getElementById('quickAddModal').classList.add('hidden'); document.getElementById('quickAddModal').classList.remove('flex');" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <ion-icon name="close-outline" class="text-2xl"></ion-icon>
+            </button>
+        </div>
+        <form action="" method="POST" class="p-6 space-y-5">
+            <div>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">To add a new product, you need a category. You can select an existing one or quickly create a new one!</p>
+                
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Existing Category (Optional)</label>
+                <select id="quick_cat_select" class="w-full px-3 py-2 border border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white mb-4">
+                    <option value="">-- Choose Category --</option>
+                    <?php if(!empty($all_categories)): foreach($all_categories as $c): ?>
+                        <option value="<?= htmlspecialchars($c['name']) ?>"><?= htmlspecialchars($c['name']) ?></option>
+                    <?php endforeach; endif; ?>
+                </select>
+
+                <div class="relative flex items-center py-2">
+                    <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                    <span class="flex-shrink-0 mx-4 text-gray-400 text-sm">OR CREATE NEW</span>
+                    <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4 mb-1">New Category Name</label>
+                <input type="text" name="quick_category_name" id="quick_category_name" placeholder="" class="w-full px-3 py-2 border border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue focus:border-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6">
+                <a href="product_add.php" class="px-4 py-2 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 transition">Skip to Product Add</a>
+                <button type="submit" class="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-700 shadow transition flex items-center gap-2">
+                    Next Step <ion-icon name="arrow-forward-outline"></ion-icon>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    document.getElementById("quick_cat_select")?.addEventListener("change", function() {
+        if(this.value) {
+            document.getElementById("quick_category_name").value = "";
+        }
+    });
+    document.getElementById("quick_category_name")?.addEventListener("input", function() {
+        if(this.value) {
+            document.getElementById("quick_cat_select").value = "";
+        }
+    });
+</script>
 
 <?php require_once '../includes/footer.php'; ?>
 

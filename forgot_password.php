@@ -53,11 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     } else {
-        // Don't reveal if email exists or not (security best practice)
-        // But for this app's UX, we show a generic success to prevent enumeration
-        $_SESSION['reset_email'] = $email;
-        $_SESSION['success_message'] = 'If this email is registered, a verification code has been sent.';
-        header('Location: verify_code.php');
+        // As requested by user, show error if email doesn't exist
+        $_SESSION['error_message'] = 'This email is not registered in the system. Please check the email address.';
+        header('Location: forgot_password.php');
         exit;
     }
 }
@@ -83,7 +81,7 @@ require_once 'includes/header.php';
                 <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
                 <div class="mt-1">
                     <input id="email" name="email" type="email" autocomplete="email" required
-                        placeholder="your@email.com"
+                        placeholder=""
                         class="appearance-none block w-full px-3 py-2 border border-black dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-blue focus:border-brand-blue sm:text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
                 </div>
             </div>

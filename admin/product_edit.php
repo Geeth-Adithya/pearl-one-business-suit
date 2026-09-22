@@ -394,7 +394,7 @@ require_once '../includes/header.php';
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type (Optional)</label>
-                <input type="text" name="type" value="<?= htmlspecialchars($product['type']) ?>" placeholder="e.g. Normal, Special"
+                <input type="text" name="type" value="<?= htmlspecialchars($product['type']) ?>" placeholder=""
                     class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
             </div>
 
@@ -437,7 +437,7 @@ require_once '../includes/header.php';
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Unit</label>
-                <input type="text" name="unit" placeholder="e.g., pcs, kg, box"
+                <input type="text" name="unit" placeholder=""
                     value="<?= htmlspecialchars($product['unit'] ?? '') ?>"
                     class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue focus:border-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
             </div>
@@ -474,7 +474,7 @@ require_once '../includes/header.php';
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Or Image URL</label>
                     <input type="url" name="image_link"
                         value="<?= filter_var($product['image_url'], FILTER_VALIDATE_URL) ? htmlspecialchars($product['image_url']) : '' ?>"
-                        placeholder="https://example.com/image.jpg"
+                        placeholder=""
                         class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
                 </div>
             </div>
@@ -489,7 +489,7 @@ require_once '../includes/header.php';
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Or Video URL</label>
                     <input type="url" name="video_link"
                         value="<?= filter_var($product['video_url'], FILTER_VALIDATE_URL) ? htmlspecialchars($product['video_url']) : '' ?>"
-                        placeholder="https://example.com/video.mp4"
+                        placeholder=""
                         class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
                 </div>
             </div>
@@ -509,7 +509,7 @@ require_once '../includes/header.php';
                 </div>
                 <div>
                     <label for="new_attribute" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Attribute</label>
-                    <input type="text" id="new_attribute" name="new_attribute" value="<?= htmlspecialchars($_POST['new_attribute'] ?? '') ?>" placeholder="e.g. Large, Blue"
+                    <input type="text" id="new_attribute" name="new_attribute" value="<?= htmlspecialchars($_POST['new_attribute'] ?? '') ?>" placeholder=""
                         class="mt-1 block w-full rounded-md border-black dark:border-gray-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2">
                 </div>
                 <div>

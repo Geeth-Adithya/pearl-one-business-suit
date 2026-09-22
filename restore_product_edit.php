@@ -102,7 +102,7 @@ if ($grid_start !== false && $cat_end !== false) {
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type (Optional)</label>
-                <input type="text" name="type" value="<?= htmlspecialchars(\$product['type']) ?>" placeholder="e.g. Normal, Special"
+                <input type="text" name="type" value="<?= htmlspecialchars(\$product['type']) ?>" placeholder=""
                     class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
             </div>
 

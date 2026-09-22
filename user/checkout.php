@@ -152,7 +152,7 @@ require_once '../includes/header.php';
                         <div>
                             <label for="contact_no" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Contact Number (Optional)</label>
                             <input type="text" id="contact_no" name="contact_no" value="<?= htmlspecialchars($contact_no) ?>"
-                                maxlength="50" placeholder="e.g. 077xxxxxxx"
+                                maxlength="50" placeholder=""
                                 class="block w-full rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-[#1E3A8A] focus:ring-[#1E3A8A] py-3 px-4">
                         </div>
                     </div>

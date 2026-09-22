@@ -8,7 +8,7 @@ $replacement = <<<HTML
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Unit</label>
-                <input type="text" name="unit" placeholder="e.g., pcs, kg, box"
+                <input type="text" name="unit" placeholder=""
                     value="<?= htmlspecialchars(\$product['unit'] ?? '') ?>"
                     class="mt-1 block w-full border-black dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-blue focus:border-brand-blue bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2">
             </div>

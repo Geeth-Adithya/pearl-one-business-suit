@@ -24,6 +24,6 @@ foreach ($tokens as $token) {
         echo "L$line: " . ($token === '{' ? '+' : '-') . " -> $brace_count\n";
     }
 }
-echo "Final: $brace_count\n";
+echo "Final: $b race_count\n";
 ?>
 
