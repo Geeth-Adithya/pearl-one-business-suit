@@ -1,0 +1,1 @@
+﻿const fs=require("fs"); let c = fs.readFileSync("frontend/src/App.jsx", "utf8"); c = c.replace("import GlobalAlert from './components/GlobalAlert';", "import NotificationBell from './components/NotificationBell';"); c = c.replaceAll("<GlobalAlert />", "<NotificationBell />"); fs.writeFileSync("frontend/src/App.jsx", c, "utf8");

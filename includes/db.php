@@ -145,6 +145,37 @@ try {
         FOREIGN KEY (admin_id) REFERENCES Users(id) ON DELETE CASCADE
     )");
 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS Supplier_Links (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        supplier_id INT NOT NULL,
+        token VARCHAR(64) NOT NULL UNIQUE,
+        expires_at DATETIME NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (supplier_id) REFERENCES Suppliers(id) ON DELETE CASCADE
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS Product_Suppliers (
+        product_id INT NOT NULL,
+        supplier_id INT NOT NULL,
+        PRIMARY KEY (product_id, supplier_id),
+        FOREIGN KEY (product_id) REFERENCES Products(id) ON DELETE CASCADE,
+        FOREIGN KEY (supplier_id) REFERENCES Suppliers(id) ON DELETE CASCADE
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS Supply_Requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        supplier_id INT NOT NULL,
+        admin_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT NOT NULL,
+        note TEXT NULL,
+        status ENUM('pending', 'fulfilled', 'cancelled') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (supplier_id) REFERENCES Suppliers(id) ON DELETE CASCADE,
+        FOREIGN KEY (admin_id) REFERENCES Users(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES Products(id) ON DELETE CASCADE
+    )");
+
     // Migration to remove retired ZSA and SA product fields
     foreach (['zsa', 'sa'] as $column) {
         $checkProductColumn = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'Products' AND COLUMN_NAME = ?");
@@ -260,7 +291,12 @@ try {
     }
 
     // Migration: add module permission columns
-    foreach (['module_pos', 'module_stock', 'module_supply'] as $modCol) {
+    $modules = [
+        'module_pos', 'module_inventory', 'module_suppliers', 
+        'module_customers', 'module_expenses', 'module_reports', 
+        'module_staff', 'module_branches'
+    ];
+    foreach ($modules as $modCol) {
         $checkModCol = $pdo->prepare("SHOW COLUMNS FROM `Users` LIKE '$modCol'");
         $checkModCol->execute();
         if ($checkModCol->rowCount() == 0) {
@@ -273,6 +309,21 @@ try {
     $checkSearchKeywords->execute();
     if ($checkSearchKeywords->rowCount() == 0) {
         $pdo->exec("ALTER TABLE `Products` ADD COLUMN `search_keywords` VARCHAR(255) NULL AFTER `name`");
+    }
+
+    // Migration to add payment_method to Orders
+    $checkPaymentMethod = $pdo->prepare("SHOW COLUMNS FROM `Orders` LIKE 'payment_method'");
+    $checkPaymentMethod->execute();
+    if ($checkPaymentMethod->rowCount() == 0) {
+        $pdo->exec("ALTER TABLE `Orders` ADD COLUMN `payment_method` VARCHAR(50) NOT NULL DEFAULT 'Cash' AFTER `total_amount`");
+    }
+
+    // Migration to add card details to Orders
+    $checkCardDetails = $pdo->prepare("SHOW COLUMNS FROM `Orders` LIKE 'card_type'");
+    $checkCardDetails->execute();
+    if ($checkCardDetails->rowCount() == 0) {
+        $pdo->exec("ALTER TABLE `Orders` ADD COLUMN `card_type` VARCHAR(20) NULL AFTER `payment_method`");
+        $pdo->exec("ALTER TABLE `Orders` ADD COLUMN `card_last_four` VARCHAR(4) NULL AFTER `card_type`");
     }
 
 } catch (\PDOException $e) {

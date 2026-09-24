@@ -1,0 +1,33 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg-light text-text-light font-sans antialiased transition-colors duration-300;
+  }
+  
+  .dark body {
+    @apply bg-bg-dark text-text-dark;
+  }
+}
+
+@layer components {
+  .card-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .dark .card-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+  
+  .glass-card {
+    @apply bg-card-light backdrop-blur-md border border-border-light rounded-xl transition-colors duration-300;
+  }
+  
+  .dark .glass-card {
+    @apply bg-card-dark border-border-dark;
+  }
+}

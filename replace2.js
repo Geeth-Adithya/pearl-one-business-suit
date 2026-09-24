@@ -1,0 +1,1 @@
+﻿const fs=require("fs"); let c = fs.readFileSync("frontend/src/App.jsx", "utf8"); c = c.replace("<div className=\"bg-white min-h-screen text-black\"><NotificationBell />\n          {children}</div>", "<div className=\"bg-white min-h-screen text-black\">{children}</div>"); fs.writeFileSync("frontend/src/App.jsx", c, "utf8");
