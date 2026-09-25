@@ -55,12 +55,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['role'] = $user['role'];
         $_SESSION['email'] = $user['email'];
 
-        // Optionally fetch shop details if admin
+        // Fetch shop details and modules
         $shopName = 'My Shop';
+        $modules = null;
+        
+        $admin_id = null;
         if ($user['role'] === 'admin') {
+            $admin_id = $user['id'];
+        } else if ($user['role'] === 'user' || $user['role'] === 'manager') {
+            $admin_id = $user['assigned_admin_id'];
+        }
+
+        if ($admin_id) {
             $shopStmt = $pdo->prepare("SELECT setting_value FROM Settings WHERE setting_key = ?");
-            $shopStmt->execute(['shop_name_' . $user['id']]);
+            $shopStmt->execute(['shop_name_' . $admin_id]);
             $shopName = $shopStmt->fetchColumn() ?: 'My Shop';
+            
+            $modStmt = $pdo->prepare("SELECT module_pos, module_inventory, module_suppliers, module_customers, module_expenses, module_reports, module_staff, module_branches FROM Users WHERE id = ?");
+            $modStmt->execute([$admin_id]);
+            $modData = $modStmt->fetch(PDO::FETCH_ASSOC);
+            if ($modData) {
+                $modules = [];
+                foreach ($modData as $k => $v) {
+                    $modules[$k] = (bool)$v;
+                }
+            }
+        } else {
+            $modules = [
+                'module_pos' => true, 'module_inventory' => true, 'module_suppliers' => true,
+                'module_customers' => true, 'module_expenses' => true, 'module_reports' => true,
+                'module_staff' => true, 'module_branches' => true
+            ];
         }
 
         echo json_encode([
@@ -70,7 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'username' => $user['username'],
                 'email' => $user['email'],
                 'role' => $user['role'],
-                'shopName' => $shopName
+                'shopName' => $shopName,
+                'modules' => $modules
             ]
         ]);
         exit;

@@ -4,6 +4,39 @@ import { Plus, Edit2, Trash2, Link as LinkIcon, Search, ArrowLeft, Copy, Check, 
 
 const API_URL = 'http://localhost:8000/api';
 
+function HistoryView() {
+  const [history, setHistory] = useState([]);
+  useEffect(() => {
+    axios.get(`${API_URL}/suppliers.php?action=requests_history`, { withCredentials: true })
+      .then(res => setHistory(res.data.requests || []));
+  }, []);
+  return (
+    <div className="space-y-4">
+      {history.length === 0 ? <p className="text-center text-gray-500 py-10">No requests sent yet.</p> : history.map(req => (
+        <div key={req.id} className="border border-border-light dark:border-border-dark rounded-xl p-4 flex flex-col sm:flex-row justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider rounded ${req.status === 'fulfilled' ? 'bg-emerald-100 text-emerald-700' : req.status === 'accepted' ? 'bg-blue-100 text-blue-700' : req.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                {req.status}
+              </span>
+              <span className="text-xs text-gray-500">{new Date(req.created_at).toLocaleString()}</span>
+            </div>
+            <h3 className="font-bold text-gray-900 dark:text-white">{req.product_name}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Supplier: <span className="font-medium text-gray-800 dark:text-gray-200">{req.supplier_name}</span> | Qty: <span className="font-medium text-brand-600">{req.quantity}</span></p>
+            {req.note && <p className="text-sm text-gray-500 italic mt-1">"{req.note}"</p>}
+          </div>
+          {req.supplier_reply && (
+            <div className="sm:w-1/3 bg-gray-50 dark:bg-bg-dark rounded-lg p-3 border border-border-light dark:border-border-dark">
+              <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Supplier Reply:</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{req.supplier_reply}</p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Suppliers() {
   const [view, setView] = useState('list'); // 'list', 'add', 'edit', 'assign'
   const [suppliers, setSuppliers] = useState([]);
@@ -23,7 +56,7 @@ export default function Suppliers() {
   const [assignLoading, setAssignLoading] = useState(false);
 
   // Request State
-  const [requestData, setRequestData] = useState({ product_id: '', quantity: '', note: '' });
+  const [requestData, setRequestData] = useState({ items: [{ product_id: '', quantity: '' }], note: '' });
   const [requestLoading, setRequestLoading] = useState(false);
 
   useEffect(() => {
@@ -155,7 +188,7 @@ export default function Suppliers() {
 
   const openRequestForm = async (supplier) => {
     setSelectedSupplier(supplier);
-    setRequestData({ product_id: '', quantity: '', note: '' });
+    setRequestData({ items: [{ product_id: '', quantity: '' }], note: '' });
     setView('request');
     setRequestLoading(true);
     try {
@@ -173,14 +206,43 @@ export default function Suppliers() {
   const handleSendRequest = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_URL}/suppliers.php`, {
+      // Filter out empty items
+      const validItems = requestData.items.filter(i => i.product_id && i.quantity > 0);
+      if (validItems.length === 0) {
+        alert("Please add at least one valid product and quantity.");
+        return;
+      }
+
+      const payload = {
         action: 'create_request',
         supplier_id: selectedSupplier.id,
-        ...requestData
-      }, { withCredentials: true });
+        items: validItems,
+        note: requestData.note
+      };
+
+      const res = await axios.post(`${API_URL}/suppliers.php`, payload, { withCredentials: true });
       
       if (res.data.success) {
-        alert('Request sent to supplier successfully!');
+        // Open WhatsApp automatically
+        if (selectedSupplier.phone) {
+          const link = selectedSupplier.active_link ? `http://localhost:5173/portal/${selectedSupplier.active_link}` : 'Contact admin for link';
+          
+          let phone = selectedSupplier.phone.replace(/\D/g, '');
+          if (phone.startsWith('0')) {
+            phone = '94' + phone.substring(1); // Format for Sri Lanka
+          }
+          
+          let itemsListText = validItems.map(item => {
+            const p = assignProductsList.find(p => p.id == item.product_id);
+            return `- ${item.quantity} x ${p ? p.name : 'Unknown Product'}`;
+          }).join('\n');
+
+          const text = `Hello *${selectedSupplier.name}*,\n\nWe urgently need a supply of:\n${itemsListText}\n\nNote: ${requestData.note || '-'}\n\nPlease check your supplier portal to respond (Accept/Delivered):\n${link}`;
+          
+          window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        alert('Request sent successfully!');
         setView('list');
       } else {
         alert(res.data.message);
@@ -218,31 +280,61 @@ export default function Suppliers() {
             </div>
           ) : (
             <form onSubmit={handleSendRequest} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-text-light dark:text-white mb-1">Select Product *</label>
-                <select 
-                  required 
-                  className="w-full p-2.5 bg-bg-light dark:bg-bg-dark border border-border-light dark:border-border-dark rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-text-light dark:text-white"
-                  value={requestData.product_id} 
-                  onChange={e => setRequestData({...requestData, product_id: e.target.value})}
+              <div className="space-y-3 p-4 bg-bg-light/30 dark:bg-bg-dark/30 border border-border-light dark:border-border-dark rounded-xl">
+                <label className="block text-sm font-medium text-text-light dark:text-white mb-2">Request Items *</label>
+                {requestData.items.map((item, index) => (
+                  <div key={index} className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                    <select 
+                      required 
+                      className="flex-1 min-w-[200px] p-2.5 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-text-light dark:text-white"
+                      value={item.product_id} 
+                      onChange={e => {
+                        const newItems = [...requestData.items];
+                        newItems[index].product_id = e.target.value;
+                        setRequestData({...requestData, items: newItems});
+                      }}
+                    >
+                      <option value="">-- Choose Product --</option>
+                      {assignProductsList.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} {p.item_code ? `(${p.item_code})` : ''}</option>
+                      ))}
+                    </select>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      placeholder="Qty"
+                      required 
+                      className="w-24 p-2.5 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-text-light dark:text-white text-center"
+                      value={item.quantity} 
+                      onChange={e => {
+                        const newItems = [...requestData.items];
+                        newItems[index].quantity = e.target.value;
+                        setRequestData({...requestData, items: newItems});
+                      }}
+                    />
+                    {requestData.items.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const newItems = [...requestData.items];
+                          newItems.splice(index, 1);
+                          setRequestData({...requestData, items: newItems});
+                        }} 
+                        className="p-2.5 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition shrink-0"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                
+                <button 
+                  type="button" 
+                  onClick={() => setRequestData({...requestData, items: [...requestData.items, {product_id: '', quantity: ''}]})}
+                  className="mt-3 text-sm text-brand-500 font-medium hover:text-brand-600 flex items-center gap-1.5 transition"
                 >
-                  <option value="">-- Choose Product --</option>
-                  {assignProductsList.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} {p.item_code ? `(${p.item_code})` : ''}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-text-light dark:text-white mb-1">Quantity Needed *</label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  required 
-                  className="w-full p-2.5 bg-bg-light dark:bg-bg-dark border border-border-light dark:border-border-dark rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-text-light dark:text-white"
-                  value={requestData.quantity} 
-                  onChange={e => setRequestData({...requestData, quantity: e.target.value})} 
-                />
+                  <Plus size={16} /> Add Another Item
+                </button>
               </div>
 
               <div>
@@ -266,6 +358,22 @@ export default function Suppliers() {
               </div>
             </form>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'history') {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-4 mb-6">
+          <button onClick={() => setView('list')} className="p-2 rounded-full hover:bg-bg-light dark:hover:bg-bg-dark transition">
+            <ArrowLeft size={24} className="text-text-muted" />
+          </button>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Request History</h2>
+        </div>
+        <div className="glass-card p-6">
+          <HistoryView />
         </div>
       </div>
     );
@@ -441,12 +549,20 @@ export default function Suppliers() {
           <h1 className="text-2xl font-bold text-brand-900 dark:text-white">Supply Management</h1>
           <p className="text-text-muted dark:text-text-mutedDark text-sm mt-1">Manage suppliers and generate product submission links.</p>
         </div>
-        <button 
-          onClick={openAddForm}
-          className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-600 transition shadow-lg shadow-brand-500/30"
-        >
-          <Plus size={20} /> Add Supplier
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setView('history')}
+            className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-4 py-2 rounded-lg font-medium hover:bg-orange-200 transition"
+          >
+            History
+          </button>
+          <button 
+            onClick={openAddForm}
+            className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-600 transition shadow-lg shadow-brand-500/30"
+          >
+            <Plus size={20} /> Add Supplier
+          </button>
+        </div>
       </div>
 
       <div className="glass-card p-5 mb-6">

@@ -119,7 +119,7 @@ try {
         $purchasing_price = (float)($input['purchasing_price'] ?? 0);
         $margin_percent = (float)($input['margin_percent'] ?? 0);
         $selling_price = (float)($input['selling_price'] ?? 0);
-        $stock_quantity = (int)($input['stock_quantity'] ?? 0);
+        $stock_quantity = max(0, (int)($input['stock_quantity'] ?? 0));
         $low_stock_threshold = (int)($input['low_stock_threshold'] ?? 5);
         $unit = trim($input['unit'] ?? 'pcs');
         $description = trim($input['description'] ?? '');
@@ -178,7 +178,7 @@ try {
         $purchasing_price = (float)($input['purchasing_price'] ?? 0);
         $margin_percent = (float)($input['margin_percent'] ?? 0);
         $selling_price = (float)($input['selling_price'] ?? 0);
-        $stock_quantity = (int)($input['stock_quantity'] ?? 0);
+        $stock_quantity = max(0, (int)($input['stock_quantity'] ?? 0));
         $low_stock_threshold = (int)($input['low_stock_threshold'] ?? 5);
         $unit = trim($input['unit'] ?? 'pcs');
         $description = trim($input['description'] ?? '');
@@ -206,7 +206,7 @@ try {
     if ($action === 'stock') {
         $id = (int)($input['id'] ?? 0);
         $change = (float)($input['change'] ?? 0); // positive = add, negative = reduce
-        $stmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ? AND created_by_admin_id = ?");
+        $stmt = $pdo->prepare("UPDATE products SET stock_quantity = GREATEST(0, stock_quantity + ?) WHERE id = ? AND created_by_admin_id = ?");
         $stmt->execute([$change, $id, $admin_id]);
         $newQty = $pdo->prepare("SELECT stock_quantity FROM products WHERE id = ?");
         $newQty->execute([$id]);

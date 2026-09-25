@@ -54,9 +54,17 @@ export default function POS() {
   }, [products, search, activeCategory]);
 
   const addToCart = (product) => {
+    if (product.stock_quantity <= 0) {
+      alert("This item is out of stock!");
+      return;
+    }
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
+        if (existing.qty + 1 > product.stock_quantity) {
+          alert(`Cannot add more. Only ${product.stock_quantity} in stock.`);
+          return prev;
+        }
         return prev.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item);
       }
       return [...prev, { ...product, qty: 1 }];
@@ -66,7 +74,12 @@ export default function POS() {
   const updateQty = (id, change) => {
     setCart(prev => prev.map(item => {
       if (item.id === id) {
-        const newQty = Math.max(1, item.qty + change);
+        let newQty = item.qty + change;
+        if (newQty > item.stock_quantity) {
+          alert(`Cannot exceed available stock (${item.stock_quantity}).`);
+          newQty = item.stock_quantity;
+        }
+        newQty = Math.max(1, newQty);
         return { ...item, qty: newQty };
       }
       return item;
@@ -179,34 +192,37 @@ export default function POS() {
             <div className="flex justify-center py-20"><Loader2 className="animate-spin text-brand-500" size={32} /></div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {filteredProducts.map(p => (
-                <div 
-                  key={p.id} 
-                  onClick={() => addToCart(p)}
-                  className="bg-white dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl overflow-hidden cursor-pointer hover:border-brand-500 dark:hover:border-brand-500 transition shadow-sm hover:shadow-md group flex flex-col"
-                >
-                  <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center relative overflow-hidden">
-                    {p.image_url ? (
-                      <img src={`${BASE_URL}/${p.image_url}`} className="w-full h-full object-cover group-hover:scale-110 transition duration-300" alt={p.name} />
-                    ) : (
-                      <ImageIcon size={30} className="text-gray-400 group-hover:scale-125 transition duration-300" />
-                    )}
-                    {p.stock_quantity <= 0 && (
-                      <div className="absolute inset-0 bg-white/60 dark:bg-black/60 flex items-center justify-center backdrop-blur-[1px]">
-                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">Out of Stock</span>
+              {filteredProducts.map(p => {
+                const isOutOfStock = p.stock_quantity <= 0;
+                return (
+                  <div 
+                    key={p.id} 
+                    onClick={() => { if (!isOutOfStock) addToCart(p); else alert("This item is out of stock!"); }}
+                    className={`bg-white dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl overflow-hidden transition shadow-sm flex flex-col ${isOutOfStock ? 'opacity-60 cursor-not-allowed grayscale' : 'cursor-pointer hover:border-brand-500 dark:hover:border-brand-500 hover:shadow-md group'}`}
+                  >
+                    <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center relative overflow-hidden">
+                      {p.image_url ? (
+                        <img src={`${BASE_URL}/${p.image_url}`} className={`w-full h-full object-cover transition duration-300 ${!isOutOfStock ? 'group-hover:scale-110' : ''}`} alt={p.name} />
+                      ) : (
+                        <ImageIcon size={30} className={`text-gray-400 transition duration-300 ${!isOutOfStock ? 'group-hover:scale-125' : ''}`} />
+                      )}
+                      {isOutOfStock && (
+                        <div className="absolute inset-0 bg-white/40 dark:bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
+                          <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md">Out of Stock</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3 flex-1 flex flex-col">
+                      <h3 className="font-medium text-sm text-text-light dark:text-white leading-tight line-clamp-2 flex-1">{p.name}</h3>
+                      {p.attribute && <p className="text-xs text-text-muted mt-0.5">{p.attribute}</p>}
+                      <div className="flex items-end justify-between mt-2">
+                        <span className={`font-bold ${isOutOfStock ? 'text-gray-500' : 'text-brand-600 dark:text-brand-400'}`}>Rs. {Number(p.selling_price).toLocaleString()}</span>
+                        <span className={`text-[10px] ${isOutOfStock ? 'text-red-500 font-bold' : 'text-text-muted'}`}>Stock: {p.stock_quantity}</span>
                       </div>
-                    )}
-                  </div>
-                  <div className="p-3 flex-1 flex flex-col">
-                    <h3 className="font-medium text-sm text-text-light dark:text-white leading-tight line-clamp-2 flex-1">{p.name}</h3>
-                    {p.attribute && <p className="text-xs text-text-muted mt-0.5">{p.attribute}</p>}
-                    <div className="flex items-end justify-between mt-2">
-                      <span className="font-bold text-brand-600 dark:text-brand-400">Rs. {Number(p.selling_price).toLocaleString()}</span>
-                      <span className="text-[10px] text-text-muted">Stock: {p.stock_quantity}</span>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {filteredProducts.length === 0 && (
                 <div className="col-span-full py-12 text-center text-text-muted">No products found matching your search.</div>
               )}

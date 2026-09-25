@@ -16,7 +16,7 @@ export default function ShopEdit() {
   const [toast, setToast] = useState(null);
 
   const [form, setForm] = useState({
-    shop_name: '', full_name: '', email: '', shop_contact: '', module_pos: 1, module_inventory: 1, module_suppliers: 1, module_customers: 1, module_expenses: 1, module_reports: 1, module_staff: 1, module_branches: 1
+    shop_name: '', full_name: '', email: '', shop_contact: '', subscription_plan: 'Monthly', max_users: 5, subscription_end_date: '', module_pos: 1, module_inventory: 1, module_suppliers: 1, module_customers: 1, module_expenses: 1, module_reports: 1, module_staff: 1, module_branches: 1
   });
   
   const [resetPassword, setResetPassword] = useState('');
@@ -34,7 +34,7 @@ export default function ShopEdit() {
             shop_name: res.data.shop.shop_name || '',
             full_name: res.data.shop.full_name || '',
             email: res.data.shop.email || '',
-            shop_contact: res.data.shop.shop_contact || '', module_pos: res.data.shop.module_pos ?? 1, module_inventory: res.data.shop.module_inventory ?? 1, module_suppliers: res.data.shop.module_suppliers ?? 1, module_customers: res.data.shop.module_customers ?? 1, module_expenses: res.data.shop.module_expenses ?? 1, module_reports: res.data.shop.module_reports ?? 1, module_staff: res.data.shop.module_staff ?? 1, module_branches: res.data.shop.module_branches ?? 1
+            shop_contact: res.data.shop.shop_contact || '', subscription_plan: res.data.shop.subscription_plan || 'Monthly', max_users: res.data.shop.max_users ?? 5, subscription_end_date: res.data.shop.subscription_end_date ? res.data.shop.subscription_end_date.split(' ')[0] : '', module_pos: res.data.shop.module_pos ?? 1, module_inventory: res.data.shop.module_inventory ?? 1, module_suppliers: res.data.shop.module_suppliers ?? 1, module_customers: res.data.shop.module_customers ?? 1, module_expenses: res.data.shop.module_expenses ?? 1, module_reports: res.data.shop.module_reports ?? 1, module_staff: res.data.shop.module_staff ?? 1, module_branches: res.data.shop.module_branches ?? 1
           });
         } else {
           alert('Shop not found');
@@ -141,6 +141,46 @@ export default function ShopEdit() {
             <div className="pt-2 flex justify-end">
               <button type="submit" disabled={submitting || !resetPassword} className="px-5 py-2.5 rounded-lg text-sm font-medium bg-purple-500 text-white hover:bg-purple-600 flex items-center gap-2 transition shadow-lg shadow-purple-500/20">
                 {submitting ? <Loader2 size={16} className="animate-spin" /> : <Key size={16} />} Reset Password
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Subscription Card */}
+        <div className="glass-card p-6 shadow-xl space-y-5">
+          <div className="flex items-center gap-3 border-b border-border-light dark:border-border-dark pb-3">
+            <h2 className="text-base font-semibold text-text-light dark:text-white">Subscription & Billing</h2>
+          </div>
+          <form onSubmit={handleUpdateDetails} className="space-y-4">
+            <div>
+              <label className={labelCls}>Subscription Plan</label>
+              <select
+                className={inputCls}
+                value={form.subscription_plan}
+                onChange={e => setForm({...form, subscription_plan: e.target.value})}
+              >
+                <option value="7 Days">7 Days Trial</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Yearly">Yearly</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Max Allowed Users/Admins</label>
+              <input type="number" min="1" className={inputCls} value={form.max_users} onChange={e => setForm({...form, max_users: e.target.value})} required />
+            </div>
+            <div>
+              <label className={labelCls}>End Date</label>
+              <input
+                type="date"
+                className={inputCls}
+                value={form.subscription_end_date}
+                onChange={e => setForm({...form, subscription_end_date: e.target.value})}
+                required
+              />
+            </div>
+            <div className="pt-2 flex justify-end">
+              <button type="submit" disabled={submitting} className="px-5 py-2.5 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 flex items-center gap-2 transition shadow-lg shadow-brand-500/20">
+                {submitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save Subscription
               </button>
             </div>
           </form>

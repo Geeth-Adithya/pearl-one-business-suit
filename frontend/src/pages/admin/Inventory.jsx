@@ -163,7 +163,7 @@ export default function Inventory() {
                       <div className="flex items-center justify-center gap-2">
                         <button 
                           onClick={() => handleStockAdjust(p.id, -1)}
-                          disabled={stockUpdating === p.id}
+                            disabled={stockUpdating === p.id || p.stock_quantity <= 0}
                           className="w-6 h-6 rounded-full flex items-center justify-center bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200 disabled:opacity-50"
                         >-</button>
                         <span className={`font-bold w-8 text-center ${p.stock_quantity <= p.low_stock_threshold ? 'text-red-500' : 'text-emerald-500'}`}>
@@ -181,9 +181,11 @@ export default function Inventory() {
                         <Link to={`/inventory/edit/${p.id}`} className="p-1.5 rounded-lg bg-brand-500/10 text-brand-500 hover:bg-brand-500/20 transition">
                           <Edit size={16} />
                         </Link>
+                      {(user?.role === 'admin' || user?.role === 'manager') && (
                         <button onClick={() => handleDelete(p.id, p.name)} className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition">
                           <Trash2 size={16} />
                         </button>
+                      )}
                       </div>
                     </td>
                   </tr>

@@ -237,7 +237,7 @@ export default function ProductEdit() {
 
               <div>
                 <label className={labelCls}>Stock Quantity</label>
-                <input type="number" name="stock_quantity" value={form.stock_quantity} onChange={handleChange} className={inputCls} />
+                <input type="number" min="0" name="stock_quantity" value={form.stock_quantity} onChange={handleChange} className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Low Stock Alert At</label>

@@ -64,6 +64,42 @@ try {
             }
             
             echo json_encode(['success' => true, 'message' => 'Maintenance alert updated successfully']);
+        } elseif ($action === 'update_profile') {
+            $username = trim($data['username'] ?? '');
+            $email = trim($data['email'] ?? '');
+            $password = $data['password'] ?? '';
+            
+            if (empty($username) || empty($email)) {
+                echo json_encode(['success' => false, 'message' => 'Username and email are required']);
+                exit;
+            }
+
+            // Check if email or username is taken by another user
+            $stmt = $pdo->prepare("SELECT id FROM Users WHERE (email = ? OR username = ?) AND id != ?");
+            $stmt->execute([$email, $username, $_SESSION['user_id']]);
+            if ($stmt->fetch()) {
+                echo json_encode(['success' => false, 'message' => 'Username or email already in use by another account']);
+                exit;
+            }
+
+            if (!empty($password)) {
+                if (strlen($password) < 8) {
+                    echo json_encode(['success' => false, 'message' => 'Password must be at least 8 characters']);
+                    exit;
+                }
+                $hash = password_hash($password, PASSWORD_BCRYPT);
+                $stmt = $pdo->prepare("UPDATE Users SET username = ?, email = ?, password_hash = ? WHERE id = ?");
+                $stmt->execute([$username, $email, $hash, $_SESSION['user_id']]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE Users SET username = ?, email = ? WHERE id = ?");
+                $stmt->execute([$username, $email, $_SESSION['user_id']]);
+            }
+            
+            // Update session vars
+            $_SESSION['username'] = $username;
+            $_SESSION['email'] = $email;
+
+            echo json_encode(['success' => true, 'message' => 'Profile updated successfully']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
         }

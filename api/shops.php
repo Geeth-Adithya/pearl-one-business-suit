@@ -17,7 +17,7 @@ try {
                 SELECT u.id, u.username, u.full_name, u.email, u.is_active,
                        u.subscription_plan, u.subscription_start_date, u.subscription_end_date,
                        u.module_pos, u.module_inventory, u.module_suppliers, u.module_customers,
-                       u.module_expenses, u.module_reports, u.module_staff, u.module_branches,
+                       u.module_expenses, u.module_reports, u.module_staff, u.module_branches, u.max_users,
                        (SELECT setting_value FROM settings WHERE setting_key = CONCAT('shop_name_', u.id)) as shop_name,
                        (SELECT setting_value FROM settings WHERE setting_key = CONCAT('shop_contact_', u.id)) as shop_contact
                 FROM users u
@@ -83,6 +83,7 @@ try {
         $mod_rep = isset($input['module_reports']) ? (int)$input['module_reports'] : 1;
         $mod_stf = isset($input['module_staff']) ? (int)$input['module_staff'] : 1;
         $mod_brn = isset($input['module_branches']) ? (int)$input['module_branches'] : 1;
+        $max_users = isset($input['max_users']) ? (int)$input['max_users'] : 5;
 
         if (empty($username)) { echo json_encode(['success' => false, 'message' => 'Username is required.']); exit; }
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) { echo json_encode(['success' => false, 'message' => 'Valid email is required.']); exit; }
@@ -100,8 +101,8 @@ try {
         else $end_date = date('Y-m-d H:i:s', strtotime('+1 year'));
 
         $password_hash = password_hash($password, PASSWORD_BCRYPT);
-        $stmt = $pdo->prepare("INSERT INTO users (username, full_name, email, password_hash, role, is_active, subscription_plan, subscription_start_date, subscription_end_date, module_pos, module_inventory, module_suppliers, module_customers, module_expenses, module_reports, module_staff, module_branches) VALUES (?, ?, ?, ?, 'admin', 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$username, $full_name, $email, $password_hash, $subscription_plan, $start_date, $end_date, $mod_pos, $mod_inv, $mod_sup, $mod_cus, $mod_exp, $mod_rep, $mod_stf, $mod_brn]);
+        $stmt = $pdo->prepare("INSERT INTO users (username, full_name, email, password_hash, role, is_active, subscription_plan, subscription_start_date, subscription_end_date, module_pos, module_inventory, module_suppliers, module_customers, module_expenses, module_reports, module_staff, module_branches, max_users) VALUES (?, ?, ?, ?, 'admin', 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$username, $full_name, $email, $password_hash, $subscription_plan, $start_date, $end_date, $mod_pos, $mod_inv, $mod_sup, $mod_cus, $mod_exp, $mod_rep, $mod_stf, $mod_brn, $max_users]);
         $new_id = $pdo->lastInsertId();
 
         $settingsStmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
@@ -152,6 +153,10 @@ try {
         $mod_rep = isset($input['module_reports']) ? (int)$input['module_reports'] : 1;
         $mod_stf = isset($input['module_staff']) ? (int)$input['module_staff'] : 1;
         $mod_brn = isset($input['module_branches']) ? (int)$input['module_branches'] : 1;
+        $max_users = isset($input['max_users']) ? (int)$input['max_users'] : 5;
+
+        $sub_plan = $input['subscription_plan'] ?? 'Monthly';
+        $sub_end_date = $input['subscription_end_date'] ?? date('Y-m-d H:i:s', strtotime('+1 month'));
 
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) { echo json_encode(['success' => false, 'message' => 'Valid email is required.']); exit; }
 
@@ -160,12 +165,14 @@ try {
         if ($stmt->fetch()) { echo json_encode(['success' => false, 'message' => 'Email already in use.']); exit; }
 
         $pdo->prepare("UPDATE users SET full_name = ?, email = ?, 
+            subscription_plan = ?, subscription_end_date = ?,
             module_pos = ?, module_inventory = ?, module_suppliers = ?, module_customers = ?,
-            module_expenses = ?, module_reports = ?, module_staff = ?, module_branches = ?
+            module_expenses = ?, module_reports = ?, module_staff = ?, module_branches = ?, max_users = ?
             WHERE id = ? AND role = 'admin'")
             ->execute([
                 $full_name, $email, 
-                $mod_pos, $mod_inv, $mod_sup, $mod_cus, $mod_exp, $mod_rep, $mod_stf, $mod_brn,
+                $sub_plan, $sub_end_date,
+                $mod_pos, $mod_inv, $mod_sup, $mod_cus, $mod_exp, $mod_rep, $mod_stf, $mod_brn, $max_users,
                 $id
             ]);
 

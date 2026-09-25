@@ -18,6 +18,8 @@ import Categories from './pages/admin/Categories';
 import POS from './pages/admin/POS';
 import PrintBill from './pages/admin/PrintBill';
 import Suppliers from './pages/admin/Suppliers';
+import Expenses from './pages/admin/Expenses';
+import Staff from './pages/admin/Staff';
 import SupplierPortal from './pages/SupplierPortal';
 import NotificationBell from './components/NotificationBell';
 import SettingsPage from './pages/admin/Settings';
@@ -26,7 +28,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 function Sidebar({ isDarkMode, toggleTheme, isOpen, onClose }) {
   const location = useLocation();
 
-  if (location.pathname.startsWith('/print/') || location.pathname.startsWith('/supplier-portal/')) {
+  if (location.pathname.startsWith('/print/') || location.pathname.startsWith('/portal/') || location.pathname.startsWith('/supplier-portal/')) {
     return null;
   }
   
@@ -65,9 +67,9 @@ function Sidebar({ isDarkMode, toggleTheme, isOpen, onClose }) {
       {user?.modules?.module_customers && <NavLink to="/customers" icon={Users} label="Customers" />}
       {user?.modules?.module_expenses && <NavLink to="/expenses" icon={Wallet} label="Expenses" />}
       {user?.modules?.module_reports && <NavLink to="/reports" icon={BarChart2} label="Reports" />}
-      {user?.modules?.module_staff && <NavLink to="/staff" icon={UserCircle} label="Staff" />}
-      {user?.modules?.module_branches && <NavLink to="/branches" icon={Store} label="Branches" />}
-      <NavLink to="/settings" icon={Settings} label="Settings" />
+      {(user?.role === 'admin' || user?.role === 'manager') && user?.modules?.module_staff && <NavLink to="/staff" icon={UserCircle} label="Staff" />}
+      {(user?.role === 'admin' || user?.role === 'manager') && user?.modules?.module_branches && <NavLink to="/branches" icon={Store} label="Branches" />}
+      {(user?.role === 'admin' || user?.role === 'manager') && <NavLink to="/settings" icon={Settings} label="Settings" />}
     </>
   );
 
@@ -153,7 +155,7 @@ function Layout({ children, isDarkMode, toggleTheme }) {
     setSidebarOpen(false);
   }, [location.pathname]);
 
-  if (location.pathname.startsWith('/print/') || location.pathname.startsWith('/supplier-portal/')) {
+  if (location.pathname.startsWith('/print/') || location.pathname.startsWith('/portal/') || location.pathname.startsWith('/supplier-portal/')) {
     return <div className="bg-white min-h-screen text-black">{children}</div>;
   }
 
@@ -249,6 +251,7 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/portal/:token" element={<SupplierPortal />} />
       <Route path="/supplier-portal/:token" element={<SupplierPortal />} />
 
       {/* Shared Dashboard (auto-renders by role) */}
@@ -269,9 +272,9 @@ function AppContent() {
       <Route path="/suppliers" element={mr("module_suppliers", <Suppliers />)} />
       
       <Route path="/customers" element={mr("module_customers", <PlaceholderPage title="Customer Management" />)} />
-      <Route path="/expenses" element={mr("module_expenses", <Dashboard />)} />
+      <Route path="/expenses" element={mr("module_expenses", <Expenses />)} />
       <Route path="/reports" element={mr("module_reports", <PlaceholderPage title="Reports" />)} />
-      <Route path="/staff" element={mr("module_staff", <PlaceholderPage title="Staff Management" />)} />
+      <Route path="/staff" element={mr("module_staff", <Staff />)} />
       <Route path="/branches" element={mr("module_branches", <PlaceholderPage title="Branch Management" />)} />
 
       {/* Shared */}

@@ -34,7 +34,7 @@ export default function ShopManagement() {
   const [form, setForm] = useState({
     shop_name: '', full_name: '', shop_contact: '',
     username: '', email: '', password: '', confirm_password: '',
-    subscription_plan: '', module_pos: 1, module_inventory: 1, module_suppliers: 1, module_customers: 1, module_expenses: 1, module_reports: 1, module_staff: 1, module_branches: 1
+    subscription_plan: '', max_users: 5, module_pos: 1, module_inventory: 1, module_suppliers: 1, module_customers: 1, module_expenses: 1, module_reports: 1, module_staff: 1, module_branches: 1
   });
 
   const showToast = (message, type = 'success') => {
@@ -98,7 +98,7 @@ export default function ShopManagement() {
       const res = await axios.post(`${API_URL}/shops.php`, { ...form, action: 'create' });
       if (res.data.success) {
         showToast(res.data.message);
-        setForm({ shop_name: '', full_name: '', shop_contact: '', username: '', email: '', password: '', confirm_password: '', subscription_plan: '', module_pos: 1, module_inventory: 1, module_suppliers: 1, module_customers: 1, module_expenses: 1, module_reports: 1, module_staff: 1, module_branches: 1 });
+        setForm({ shop_name: '', full_name: '', shop_contact: '', username: '', email: '', password: '', confirm_password: '', subscription_plan: '', max_users: 5, module_pos: 1, module_inventory: 1, module_suppliers: 1, module_customers: 1, module_expenses: 1, module_reports: 1, module_staff: 1, module_branches: 1 });
         setUsernameStatus(null);
         fetchShops();
       } else { showToast(res.data.message, 'error'); }
@@ -185,11 +185,12 @@ export default function ShopManagement() {
             <label className={labelCls}>Subscription Plan</label>
             <select className={inputCls} value={form.subscription_plan} onChange={e => setForm(f => ({ ...f, subscription_plan: e.target.value }))} required>
               <option value="" disabled>Select a plan</option>
-              <option value="7 Days">7 Days</option>
+              <option value="7 Days">7 Days (Trial)</option>
               <option value="Monthly">Monthly</option>
               <option value="Yearly">Yearly</option>
             </select>
           </div>
+          <div><label className={labelCls}>Max Allowed Users/Admins</label><input type="number" min="1" className={inputCls} value={form.max_users} onChange={e => setForm(f => ({ ...f, max_users: e.target.value }))} required /></div>
         </div>
 
         {/* Module Toggles */}

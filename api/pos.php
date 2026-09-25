@@ -79,8 +79,10 @@ try {
 
             if (!$p) throw new Exception("Product ID $id not found.");
             
-            // Optional strict stock check:
-            // if ($p['stock_quantity'] < $qty) throw new Exception("Not enough stock for product ID $id.");
+            // Strict stock check:
+            if ($p['stock_quantity'] < $qty) {
+                throw new Exception("Not enough stock for product ID $id. Only {$p['stock_quantity']} left.");
+            }
 
             $price = (float)$p['selling_price'];
             $totalAmount += ($price * $qty);

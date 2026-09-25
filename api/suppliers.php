@@ -29,6 +29,17 @@ try {
             } else {
                 echo json_encode(['success' => false, 'message' => 'Supplier not found']);
             }
+        } elseif ($action === 'requests_history') {
+            $stmt = $pdo->prepare("
+                SELECT sr.*, s.name as supplier_name, p.name as product_name
+                FROM Supply_Requests sr
+                JOIN Suppliers s ON sr.supplier_id = s.id
+                JOIN Products p ON sr.product_id = p.id
+                WHERE sr.admin_id = ?
+                ORDER BY sr.created_at DESC
+            ");
+            $stmt->execute([$admin_id]);
+            echo json_encode(['success' => true, 'requests' => $stmt->fetchAll()]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
         }
@@ -130,18 +141,47 @@ try {
 
         } elseif ($action === 'create_request') {
             $supplier_id = $data['supplier_id'] ?? 0;
-            $product_id = $data['product_id'] ?? 0;
-            $quantity = $data['quantity'] ?? 0;
             $note = trim($data['note'] ?? '');
+            
+            $items = $data['items'] ?? [];
+            if (empty($items) && isset($data['product_id'])) {
+                $items = [['product_id' => $data['product_id'], 'quantity' => $data['quantity']]];
+            }
 
-            if ($quantity <= 0) {
-                echo json_encode(['success' => false, 'message' => 'Quantity must be greater than 0']);
+            if (empty($items)) {
+                echo json_encode(['success' => false, 'message' => 'No items provided']);
                 exit;
             }
 
-            $stmt = $pdo->prepare("INSERT INTO Supply_Requests (supplier_id, admin_id, product_id, quantity, note) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$supplier_id, $admin_id, $product_id, $quantity, $note]);
-            echo json_encode(['success' => true, 'message' => 'Request sent to supplier']);
+            $pdo->beginTransaction();
+            try {
+                $stmt = $pdo->prepare("INSERT INTO Supply_Requests (supplier_id, admin_id, product_id, quantity, note) VALUES (?, ?, ?, ?, ?)");
+                foreach ($items as $item) {
+                    $pid = $item['product_id'] ?? 0;
+                    $qty = $item['quantity'] ?? 0;
+                    if ($qty > 0 && $pid > 0) {
+                        $stmt->execute([$supplier_id, $admin_id, $pid, $qty, $note]);
+                    }
+                }
+                $pdo->commit();
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                throw $e;
+            }
+            
+            // Email to supplier
+            $supStmt = $pdo->prepare("SELECT email FROM Suppliers WHERE id = ?");
+            $supStmt->execute([$supplier_id]);
+            $supplierEmail = $supStmt->fetchColumn();
+            
+            if ($supplierEmail) {
+                $subject = "New Supply Request - PearlOne Business Suite";
+                $msg = "You have received a new supply request.\nNote: $note\n\nPlease check your supplier portal for more details.";
+                $headers = "From: noreply@pearlone.com\r\n";
+                // @mail($supplierEmail, $subject, $msg, $headers); // Commented out to prevent UI hanging on localhost
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Requests sent to supplier']);
 
         } else {
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
